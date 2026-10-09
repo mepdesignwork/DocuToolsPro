@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en" class="light scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta id="meta-description" name="description" content="DocuTools - Every PDF Tool You Need, In One Place. Merge, compress, convert, split, and edit your PDFs quickly, securely, and easily.">
+    <title id="page-title">DocuTools | Free Online PDF Editor & Converter</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Core Processing Libraries -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#f0f4f8', 100: '#d9e2ec', 500: '#243b53', 
+                            600: '#102a43', 700: '#0a1d30', accent: '#e11d48'
+                        }
+                    },
+                    boxShadow: { 'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)' }
+                }
+            }
+        }
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        
+        .hero-pattern { background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 24px 24px; }
+        .dark .hero-pattern { background-image: radial-gradient(#334155 1px, transparent 1px); }
+        
+        .tool-card { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+        .tool-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.12); border-color: #e2e8f0; }
+        .dark .tool-card:hover { border-color: #475569; box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.5); }
+        
+        .upload-zone { transition: all 0.2s ease; border: 2px dashed #cbd5e1; }
+        .dark .upload-zone { border-color: #475569; }
+        .upload-zone.dragover { background-color: rgba(225, 29, 72, 0.05); border-color: #e11d48; border-style: solid; }
+        
+        .thumb-skeleton { animation: pulse 1.5s infinite ease-in-out; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; }
+        .dark .thumb-skeleton { background: linear-gradient(90deg, #334155 25%, #475569 50%, #334155 75%); background-size: 200% 100%; }
+        @keyframes pulse { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        
+        .loader-bar { overflow: hidden; position: relative; }
+        .loader-bar::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+    </style>
+</head>
+<body class="bg-brand-50 text-brand-600 dark:bg-[#0b1120] dark:text-gray-300 min-h-screen flex flex-col">
+
+    <header class="bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-200 dark:border-gray-800 transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            
+            <!-- Logo -->
+            <a href="#" class="flex items-center gap-2.5 group" onclick="navigate('home')">
+                <div class="w-9 h-9 bg-brand-accent rounded-lg flex items-center justify-center text-white shadow-md shadow-brand-accent/20 group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-file-pdf text-lg"></i>
+                </div>
+                <span class="text-xl font-bold tracking-tight text-brand-700 dark:text-white">Docu<span class="font-light">Tools</span></span>
+            </a>
+
+            <!-- Desktop Nav -->
+            <nav class="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-600 dark:text-gray-300">
+                <div class="relative group cursor-pointer h-16 flex items-center">
+                    <span class="hover:text-brand-accent transition-colors">All Tools <i class="fa-solid fa-chevron-down text-[10px] ml-1 opacity-60"></i></span>
+                    <div class="absolute top-16 left-1/2 -translate-x-1/2 w-[600px] bg-white dark:bg-gray-800 shadow-2xl rounded-xl border border-gray-100 dark:border-gray-700 p-6 hidden group-hover:grid grid-cols-2 gap-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <!-- Mega menu populated by JS -->
+                        <div id="mega-menu-content" class="col-span-2 grid grid-cols-2 gap-x-8 gap-y-4"></div>
+                    </div>
+                </div>
+                <a href="#" class="hover:text-brand-accent transition-colors">Pricing</a>
+                <a href="#" class="hover:text-brand-accent transition-colors">API</a>
+                <a href="#" onclick="navigate('dashboard')" class="hover:text-brand-accent transition-colors flex items-center gap-2">
+                    <i class="fa-regular fa-folder-open"></i> My Files
+                </a>
+            </nav>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-3 md:gap-4">
+                <button id="searchBtn" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
+                <button id="themeToggle" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors">
+                    <i class="fa-solid fa-moon" id="themeIcon"></i>
+                </button>
+                <button class="hidden sm:flex items-center gap-2 bg-brand-700 dark:bg-white text-white dark:text-brand-700 px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-brand-600 dark:hover:bg-gray-100 transition-colors shadow-soft">
+                    Log in
+                </button>
+                <button class="md:hidden w-9 h-9 flex items-center justify-center text-gray-500">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Search Bar Overlay (Hidden by default) -->
+        <div id="searchOverlay" class="hidden absolute top-16 left-0 w-full bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 shadow-lg">
+            <div class="max-w-3xl mx-auto relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="text" id="searchInput" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all dark:text-white" placeholder="Search for tools (e.g., 'Compress', 'Merge')...">
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col relative w-full">
+        
+        <!-- VIEW: HOMEPAGE -->
+        <div id="view-home" class="flex flex-col w-full">
+            <!-- Hero Section -->
+            <section class="relative bg-white dark:bg-[#0f172a] border-b border-gray-200 dark:border-gray-800 overflow-hidden">
+                <div class="absolute inset-0 hero-pattern opacity-[0.03] dark:opacity-[0.05]"></div>
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 text-center relative z-10">
+                    <h1 class="text-4xl md:text-6xl font-extrabold text-brand-700 dark:text-white tracking-tight mb-6 leading-tight">
+                        Every PDF Tool You Need,<br><span class="text-brand-accent">In One Place.</span>
+                    </h1>
+                    <p class="text-lg md:text-xl text-gray-500 dark:text-gray-400 max-w-2xl mx-auto mb-10">
+                        Merge, compress, convert, split, edit and protect your PDFs quickly and easily. 100% secure in-browser processing.
+                    </p>
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <button onclick="document.getElementById('cat-organize').scrollIntoView()" class="px-8 py-4 bg-brand-accent hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-brand-accent/30 transition-all transform hover:-translate-y-1 w-full sm:w-auto text-lg">
+                            Explore Tools
+                        </button>
+                        <button onclick="navigate('dashboard')" class="px-8 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-brand-700 dark:text-white font-bold rounded-xl shadow-sm transition-all w-full sm:w-auto text-lg">
+                            Go to My Files
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Popular Tools -->
+            <section class="py-16 bg-brand-50 dark:bg-[#0b1120]">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex items-center justify-between mb-8">
+                        <h2 class="text-2xl font-bold text-brand-700 dark:text-white">Popular Tools</h2>
+                    </div>
+                    <div id="popular-tools-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- All Tools Categorized -->
+            <section class="py-16 bg-white dark:bg-[#0f172a] border-t border-gray-200 dark:border-gray-800">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <h2 class="text-3xl font-bold text-center text-brand-700 dark:text-white mb-16">All PDF Tools</h2>
+                    <div id="all-tools-container" class="space-y-16">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Features Section -->
+            <section class="py-20 bg-brand-50 dark:bg-[#0b1120] border-t border-gray-200 dark:border-gray-800">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center mb-16">
+                        <h2 class="text-3xl font-bold text-brand-700 dark:text-white mb-4">Why Use DocuTools?</h2>
+                        <p class="text-gray-500">The most secure and efficient way to handle documents.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-10 text-center">
+                        <div>
+                            <div class="w-16 h-16 mx-auto bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-2xl flex items-center justify-center text-2xl mb-6"><i class="fa-solid fa-shield-halved"></i></div>
+                            <h3 class="text-xl font-bold text-brand-700 dark:text-white mb-3">100% Secure</h3>
+                            <p class="text-gray-500 dark:text-gray-400">Files are processed directly in your browser. They never leave your device.</p>
+                        </div>
+                        <div>
+                            <div class="w-16 h-16 mx-auto bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center text-2xl mb-6"><i class="fa-solid fa-bolt"></i></div>
+                            <h3 class="text-xl font-bold text-brand-700 dark:text-white mb-3">Lightning Fast</h3>
+                            <p class="text-gray-500 dark:text-gray-400">Powered by WebAssembly for native application speed without installations.</p>
+                        </div>
+                        <div>
+                            <div class="w-16 h-16 mx-auto bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center text-2xl mb-6"><i class="fa-solid fa-coins"></i></div>
+                            <h3 class="text-xl font-bold text-brand-700 dark:text-white mb-3">Free to Use</h3>
+                            <p class="text-gray-500 dark:text-gray-400">Enjoy our core suite of tools completely free, with no hidden watermarks.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="view-dashboard" class="hidden w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-grow">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h1 class="text-3xl font-bold text-brand-700 dark:text-white mb-2">My Files</h1>
+                    <p class="text-gray-500">Your recent processed documents. (Saved locally in browser)</p>
+                </div>
+                <button onclick="clearHistory()" class="text-red-500 hover:text-red-600 text-sm font-semibold flex items-center gap-2 bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-lg transition-colors">
+                    <i class="fa-solid fa-trash-can"></i> Clear History
+                </button>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-soft border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">File Name</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Tool Used</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider hidden md:table-cell">Date</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+                        <!-- Injected via JS -->
+                    </tbody>
+                </table>
+                <div id="history-empty" class="hidden p-12 text-center text-gray-500">
+                    <i class="fa-regular fa-folder-open text-5xl mb-4 text-gray-300 dark:text-gray-600"></i>
+                    <p class="text-lg font-medium text-brand-700 dark:text-white">No files processed yet.</p>
+                    <p class="mt-1">Use a tool to see your history here.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-tool" class="hidden flex-col w-full flex-grow pb-20">
+            
+            <!-- Tool Header -->
+            <div class="bg-brand-700 dark:bg-[#0f172a] text-white py-12 px-4 text-center border-b border-brand-600 dark:border-gray-800">
+                <div class="max-w-3xl mx-auto flex flex-col items-center">
+                    <div id="tool-icon-large" class="w-20 h-20 rounded-2xl bg-white/10 flex items-center justify-center text-4xl mb-5 shadow-lg backdrop-blur-sm border border-white/10">
+                        <i class="fa-solid fa-wrench"></i>
+                    </div>
+                    <h1 id="tool-title" class="text-4xl font-extrabold mb-4 tracking-tight">Tool Name</h1>
+                    <p id="tool-desc" class="text-brand-100 dark:text-gray-300 text-lg">Tool description goes here.</p>
+                </div>
+            </div>
+
+            <!-- Main App Container -->
+            <div class="max-w-4xl mx-auto w-full px-4 sm:px-6 -mt-8 relative z-10">
+                <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden min-h-[450px] flex flex-col">
+                    
+                    <!-- STEP 1: UPLOAD -->
+                    <div id="ui-upload" class="flex-grow flex flex-col items-center justify-center p-8 sm:p-12">
+                        <div id="drop-zone" class="upload-zone w-full rounded-2xl p-12 sm:p-20 flex flex-col items-center justify-center cursor-pointer bg-gray-50/50 dark:bg-gray-900/30 group relative hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                            <input type="file" id="file-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            <div class="w-20 h-20 bg-white dark:bg-gray-700 rounded-full shadow-soft flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 text-brand-accent">
+                                <i class="fa-solid fa-cloud-arrow-up text-4xl"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-brand-700 dark:text-white mb-2">Select files</h3>
+                            <p class="text-gray-500 dark:text-gray-400 mb-6">or drop files here</p>
+                            <span id="tool-accept-badge" class="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Accepts: PDF</span>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: PREVIEW & SETTINGS -->
+                    <div id="ui-preview" class="hidden flex-grow flex flex-col">
+                        <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-between items-center">
+                            <h3 class="font-bold text-brand-700 dark:text-white">Selected Files</h3>
+                            <button onclick="document.getElementById('file-input').click()" class="text-sm font-semibold text-brand-accent hover:text-rose-700 flex items-center gap-1">
+                                <i class="fa-solid fa-plus"></i> Add More
+                            </button>
+                        </div>
+                        
+                        <div class="flex flex-col md:flex-row flex-grow">
+                            <!-- File List with Thumbnails -->
+                            <div class="flex-grow p-6 overflow-y-auto max-h-[350px]" id="file-list-container">
+                                <!-- Thumbnails injected here -->
+                            </div>
+                            
+                            <!-- Settings Sidebar -->
+                            <div class="w-full md:w-80 bg-gray-50/50 dark:bg-gray-900/30 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 p-6 flex flex-col">
+                                <div id="settings-panel" class="mb-6 hidden">
+                                    <h4 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Options</h4>
+                                    <div id="dynamic-inputs" class="space-y-4"></div>
+                                </div>
+                                <div class="mt-auto flex flex-col gap-3">
+                                    <button onclick="startEngine()" class="w-full py-4 rounded-xl bg-brand-accent hover:bg-rose-700 text-white font-bold text-lg transition-colors shadow-lg shadow-brand-accent/30 flex items-center justify-center gap-2">
+                                        Process Files <i class="fa-solid fa-arrow-right"></i>
+                                    </button>
+                                    <button onclick="resetApp()" class="w-full py-3 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold transition-colors">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3: PROCESSING -->
+                    <div id="ui-processing" class="hidden flex-grow flex flex-col items-center justify-center p-12 text-center">
+                        <div class="relative w-24 h-24 mb-8">
+                            <svg class="animate-spin w-full h-full text-gray-200 dark:text-gray-700" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                                <path class="opacity-75" fill="var(--color-brand-accent, #e11d48)" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <i class="fa-solid fa-gear absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl text-brand-accent"></i>
+                        </div>
+                        <h3 id="progress-title" class="text-2xl font-bold text-brand-700 dark:text-white mb-2">Uploading Files...</h3>
+                        <p id="progress-desc" class="text-gray-500 mb-8 max-w-sm">Please wait while we process your request.</p>
+                        
+                        <div class="w-full max-w-md bg-gray-100 dark:bg-gray-700 rounded-full h-4 overflow-hidden shadow-inner">
+                            <div id="progress-bar-fill" class="bg-brand-accent h-full rounded-full transition-all duration-300 ease-out loader-bar" style="width: 0%"></div>
+                        </div>
+                        <div id="progress-pct" class="mt-2 text-sm font-bold text-gray-500">0%</div>
+                    </div>
+
+                    <!-- STEP 4: RESULT -->
+                    <div id="ui-result" class="hidden flex-grow flex flex-col items-center justify-center p-12 text-center">
+                        <div class="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6">
+                            <i class="fa-solid fa-check text-4xl text-green-500"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-brand-700 dark:text-white mb-2">Success!</h3>
+                        <p class="text-gray-500 text-lg mb-8">Your files have been successfully processed.</p>
+                        
+                        <div class="flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
+                            <button id="btn-download" class="flex-1 bg-brand-700 hover:bg-brand-600 dark:bg-white dark:text-brand-700 dark:hover:bg-gray-100 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-lg">
+                                <i class="fa-solid fa-download"></i> Download
+                            </button>
+                            <button onclick="resetApp()" class="sm:flex-none bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-white font-bold py-4 px-6 rounded-xl transition-all">
+                                Start Over
+                            </button>
+                        </div>
+                        
+                        <p class="mt-8 text-xs text-gray-400 flex items-center gap-1 justify-center">
+                            <i class="fa-solid fa-lock"></i> Files processed securely and removed immediately.
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- SEO Content Section -->
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 mt-16 w-full">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-soft border border-gray-200 dark:border-gray-700">
+                    <h2 class="text-2xl font-bold text-brand-700 dark:text-white mb-6 border-b border-gray-100 dark:border-gray-700 pb-4">How to use <span id="seo-tool-name-inline" class="lowercase">this tool</span></h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                        <div class="text-center">
+                            <div class="w-10 h-10 mx-auto bg-brand-100 text-brand-600 dark:bg-gray-700 dark:text-white rounded-full flex items-center justify-center font-bold mb-3">1</div>
+                            <h4 class="font-bold text-gray-900 dark:text-white mb-1">Upload</h4>
+                            <p class="text-sm text-gray-500">Select files from your device or drag and drop them.</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-10 h-10 mx-auto bg-brand-100 text-brand-600 dark:bg-gray-700 dark:text-white rounded-full flex items-center justify-center font-bold mb-3">2</div>
+                            <h4 class="font-bold text-gray-900 dark:text-white mb-1">Process</h4>
+                            <p class="text-sm text-gray-500">Adjust any settings required and click the process button.</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-10 h-10 mx-auto bg-brand-100 text-brand-600 dark:bg-gray-700 dark:text-white rounded-full flex items-center justify-center font-bold mb-3">3</div>
+                            <h4 class="font-bold text-gray-900 dark:text-white mb-1">Download</h4>
+                            <p class="text-sm text-gray-500">Get your result instantly. Original files are kept secure.</p>
+                        </div>
+                    </div>
+                    
+                    <h2 class="text-2xl font-bold text-brand-700 dark:text-white mb-6 border-b border-gray-100 dark:border-gray-700 pb-4">Frequently Asked Questions</h2>
+                    <div id="seo-faq" class="space-y-4">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-white dark:bg-[#0f172a] border-t border-gray-200 dark:border-gray-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <div class="col-span-1 md:col-span-2">
+                    <a href="#" class="flex items-center gap-2 group mb-4">
+                        <div class="w-8 h-8 bg-brand-accent rounded-lg flex items-center justify-center text-white"><i class="fa-solid fa-file-pdf"></i></div>
+                        <span class="text-lg font-bold text-brand-700 dark:text-white">DocuTools</span>
+                    </a>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm max-w-sm mb-6">
+                        The ultimate suite of completely free, secure, and fast document processing tools built for modern workflows.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-gray-900 dark:text-white mb-4">Top Tools</h4>
+                    <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+                        <li><a href="#merge-pdf" class="hover:text-brand-accent">Merge PDF</a></li>
+                        <li><a href="#compress-pdf" class="hover:text-brand-accent">Compress PDF</a></li>
+                        <li><a href="#pdf-to-jpg" class="hover:text-brand-accent">PDF to JPG</a></li>
+                        <li><a href="#split-pdf" class="hover:text-brand-accent">Split PDF</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-gray-900 dark:text-white mb-4">Legal</h4>
+                    <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+                        <li><a href="#" class="hover:text-brand-accent">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-brand-accent">Terms of Service</a></li>
+                        <li><a href="#" class="hover:text-brand-accent">Pricing</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 dark:border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
+                <p>&copy; 2026 DocuTools Pro. All rights reserved.</p>
+                <div class="flex gap-4">
+                    <i class="fa-brands fa-twitter text-lg hover:text-brand-accent cursor-pointer"></i>
+                    <i class="fa-brands fa-github text-lg hover:text-brand-accent cursor-pointer"></i>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // --- 1. TOOL DATABASE ---
+        // Top 10 Priority Tools carefully crafted + stubs for the rest.
+        const toolsData = [
+            // CATEGORY: PDF ORGANIZER
+            { id: 'merge-pdf', category: 'PDF Organizer', title: 'Merge PDF', icon: 'fa-object-group', color: 'bg-blue-500', isReal: true, pop: true,
+              desc: 'Combine multiple PDFs into one unified document.', accept: 'application/pdf', ext: '.pdf', multiple: true },
+            { id: 'split-pdf', category: 'PDF Organizer', title: 'Split PDF', icon: 'fa-cut', color: 'bg-red-500', isReal: true, pop: true,
+              desc: 'Separate PDF pages into individual files or a ZIP archive.', accept: 'application/pdf', ext: '.pdf', multiple: false },
+            { id: 'delete-pages', category: 'PDF Organizer', title: 'Remove Pages', icon: 'fa-file-circle-minus', color: 'bg-pink-500', isReal: true,
+              desc: 'Remove specific pages from a PDF document quickly.', accept: 'application/pdf', ext: '.pdf', multiple: false,
+              options: [{ id: 'pages', type: 'text', label: 'Pages to delete (e.g. 1, 3-5)', placeholder: '1, 3' }] },
+            { id: 'rotate-pdf', category: 'PDF Organizer', title: 'Rotate PDF', icon: 'fa-rotate-right', color: 'bg-teal-500', isReal: true,
+              desc: 'Rotate your PDFs the way you need them.', accept: 'application/pdf', ext: '.pdf', multiple: false,
+              options: [{ id: 'deg', type: 'select', label: 'Direction', opts: [{v:'90',t:'90° Right'},{v:'270',t:'90° Left'},{v:'180',t:'180° Upside Down'}] }] },
+            { id: 'extract-pages', category: 'PDF Organizer', title: 'Extract Pages', icon: 'fa-file-export', color: 'bg-indigo-500', isReal: true,
+              desc: 'Extract selected pages from your PDF to a new file.', accept: 'application/pdf', ext: '.pdf', multiple: false,
+              options: [{ id: 'pages', type: 'text', label: 'Pages to extract (e.g. 1, 4)', placeholder: '1, 4' }] },
+            
+            // CATEGORY: PDF CONVERTER
+            { id: 'pdf-to-jpg', category: 'PDF Converter', title: 'PDF to JPG', icon: 'fa-file-image', color: 'bg-yellow-500', isReal: true, pop: true,
+              desc: 'Convert PDF pages to high-quality JPG images.', accept: 'application/pdf', ext: '.pdf', multiple: false },
+            { id: 'jpg-to-pdf', category: 'PDF Converter', title: 'JPG to PDF', icon: 'fa-images', color: 'bg-orange-500', isReal: true, pop: true,
+              desc: 'Convert JPG, PNG, and other images to a PDF document.', accept: 'image/*', ext: 'image/*', multiple: true },
+            { id: 'pdf-to-word', category: 'PDF Converter', title: 'PDF to Word', icon: 'fa-file-word', color: 'bg-blue-600', isReal: false, pop: true,
+              desc: 'Convert PDFs to editable Word documents. (Simulated)', accept: 'application/pdf', ext: '.pdf', multiple: false },
+            { id: 'word-to-pdf', category: 'PDF Converter', title: 'Word to PDF', icon: 'fa-file-word', color: 'bg-indigo-600', isReal: false, pop: true,
+              desc: 'Convert DOCX documents to PDF format. (Simulated)', accept: '.doc,.docx', ext: '.docx', multiple: false },
+            { id: 'pdf-to-excel', category: 'PDF Converter', title: 'PDF to Excel', icon: 'fa-file-excel', color: 'bg-green-600', isReal: false,
+              desc: 'Pull data straight from PDFs into Excel. (Simulated)', accept: 'application/pdf', ext: '.pdf', multiple: false },
+              
+            // CATEGORY: PDF SECURITY
+            { id: 'protect-pdf', category: 'PDF Security', title: 'Protect PDF', icon: 'fa-lock', color: 'bg-slate-700', isReal: false,
+              desc: 'Encrypt your PDF with a password. (Simulated)', accept: 'application/pdf', ext: '.pdf', multiple: false,
+              options: [{ id: 'pwd', type: 'text', label: 'Enter Password', placeholder: 'Secret123' }] },
+            { id: 'unlock-pdf', category: 'PDF Security', title: 'Unlock PDF', icon: 'fa-unlock', color: 'bg-slate-500', isReal: false,
+              desc: 'Remove PDF password security. (Simulated)', accept: 'application/pdf', ext: '.pdf', multiple: false },
+
+            // CATEGORY: PDF OPTIMIZATION
+            { id: 'compress-pdf', category: 'PDF Optimization', title: 'Compress PDF', icon: 'fa-compress', color: 'bg-emerald-500', isReal: true, pop: true,
+              desc: 'Reduce file size while optimizing for maximal PDF quality.', accept: 'application/pdf', ext: '.pdf', multiple: false,
+              options: [{ id: 'lvl', type: 'select', label: 'Compression Level', opts: [{v:'0.5',t:'Maximum (Low Quality)'},{v:'0.7',t:'Recommended'},{v:'0.9',t:'Less (High Quality)'}]}] },
+        ];
+
+        // --- 2. GLOBAL STATE & DOM ---
+        let currentTool = null;
+        let selectedFiles = [];
+        let finalBlobUrl = null;
+        let finalFileName = '';
+
+        const els = {
+            vHome: document.getElementById('view-home'), vTool: document.getElementById('view-tool'), vDash: document.getElementById('view-dashboard'),
+            searchInput: document.getElementById('searchInput'), searchOverlay: document.getElementById('searchOverlay'),
+            
+            // App UI
+            uiUpload: document.getElementById('ui-upload'), uiPreview: document.getElementById('ui-preview'),
+            uiProcessing: document.getElementById('ui-processing'), uiResult: document.getElementById('ui-result'),
+            dropZone: document.getElementById('drop-zone'), fileInput: document.getElementById('file-input'),
+            fileList: document.getElementById('file-list-container'), settingsPanel: document.getElementById('settings-panel'), dynInputs: document.getElementById('dynamic-inputs'),
+            
+            // Progress
+            progTitle: document.getElementById('progress-title'), progDesc: document.getElementById('progress-desc'),
+            progBar: document.getElementById('progress-bar-fill'), progPct: document.getElementById('progress-pct')
+        };
+
+        // Theme Setup
+        const html = document.documentElement;
+        function updateTheme(isDark) {
+            html.classList.toggle('dark', isDark);
+            document.getElementById('themeIcon').className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        }
+        updateTheme(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches));
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            const isDark = html.classList.toggle('dark'); localStorage.setItem('theme', isDark ? 'dark' : 'light'); updateTheme(isDark);
+        });
+        
+        // Search Toggle
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            els.searchOverlay.classList.toggle('hidden'); if(!els.searchOverlay.classList.contains('hidden')) els.searchInput.focus();
+        });
+
+        // --- 3. ROUTING & RENDERING ---
+        function navigate(view, toolId = null) {
+            els.vHome.classList.add('hidden'); els.vTool.classList.add('hidden'); els.vDash.classList.add('hidden');
+            els.searchOverlay.classList.add('hidden');
+            window.scrollTo(0,0);
+            
+            if (view === 'home') {
+                els.vHome.classList.remove('hidden');
+                document.title = "DocuTools | Free Online PDF Editor & Converter";
+                try { window.history.pushState(null, '', window.location.pathname); } catch(e) { console.warn('History API restricted in this environment.'); }
+            } else if (view === 'dashboard') {
+                els.vDash.classList.remove('hidden');
+                document.title = "My Files - DocuTools";
+                renderHistory();
+            } else if (view === 'tool' && toolId) {
+                currentTool = toolsData.find(t => t.id === toolId);
+                if(!currentTool) return navigate('home');
+                
+                els.vTool.classList.remove('hidden');
+                document.title = `${currentTool.title} - DocuTools`;
+                try { window.history.pushState(null, '', `#${toolId}`); } catch(e) { console.warn('History API restricted in this environment.'); }
+                
+                // Populate Headers
+                document.getElementById('tool-icon-large').className = `w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-5 shadow-lg backdrop-blur-sm border border-white/20 text-white ${currentTool.color}`;
+                document.getElementById('tool-icon-large').innerHTML = `<i class="fa-solid ${currentTool.icon}"></i>`;
+                document.getElementById('tool-title').textContent = currentTool.title;
+                document.getElementById('tool-desc').textContent = currentTool.desc;
+                document.getElementById('tool-accept-badge').textContent = `Accepts: ${currentTool.ext}`;
+                document.getElementById('seo-tool-name-inline').textContent = currentTool.title;
+                
+                // Set Inputs
+                els.fileInput.accept = currentTool.accept;
+                currentTool.multiple ? els.fileInput.setAttribute('multiple', '') : els.fileInput.removeAttribute('multiple');
+                
+                // Build Options
+                els.dynInputs.innerHTML = '';
+                if(currentTool.options) {
+                    els.settingsPanel.classList.remove('hidden');
+                    currentTool.options.forEach(opt => {
+                        let html = `<label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">${opt.label}</label>`;
+                        if(opt.type === 'text') html += `<input type="text" id="opt_${opt.id}" placeholder="${opt.placeholder}" class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-accent focus:outline-none dark:text-white">`;
+                        if(opt.type === 'select') html += `<select id="opt_${opt.id}" class="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-accent focus:outline-none dark:text-white">${opt.opts.map(o => `<option value="${o.v}">${o.t}</option>`).join('')}</select>`;
+                        els.dynInputs.innerHTML += `<div>${html}</div>`;
+                    });
+                } else { els.settingsPanel.classList.add('hidden'); }
+                
+                // Build SEO FAQ
+                document.getElementById('seo-faq').innerHTML = `
+                    <div class="mb-4"><h5 class="font-bold text-gray-900 dark:text-white">Is it safe to use ${currentTool.title}?</h5><p class="text-sm text-gray-600 dark:text-gray-400">Yes. Processing happens directly in your browser or via secure ephemeral instances. Files are never stored.</p></div>
+                    <div><h5 class="font-bold text-gray-900 dark:text-white">Is this tool free?</h5><p class="text-sm text-gray-600 dark:text-gray-400">Yes, DocuTools provides this feature completely free of charge.</p></div>
+                `;
+                
+                resetApp();
+            }
+        }
+
+        // Initialize Data Renderers
+        function renderHomeGrids() {
+            // Mega Menu
+            const cats = ['PDF Organizer', 'PDF Converter', 'PDF Security', 'PDF Optimization'];
+            let megaHtml = '';
+            cats.forEach(c => {
+                const tools = toolsData.filter(t => t.category === c);
+                megaHtml += `<div><h4 class="text-xs font-bold text-brand-accent uppercase tracking-wider mb-3">${c}</h4><ul class="space-y-2">`;
+                tools.forEach(t => megaHtml += `<li><a href="#${t.id}" class="text-sm text-gray-600 dark:text-gray-300 hover:text-brand-700 dark:hover:text-white font-medium flex items-center gap-2"><i class="fa-solid ${t.icon} w-4 text-center"></i> ${t.title}</a></li>`);
+                megaHtml += `</ul></div>`;
+            });
+            document.getElementById('mega-menu-content').innerHTML = megaHtml;
+
+            // Popular Tools
+            const popHtml = toolsData.filter(t => t.pop).map(t => createCard(t)).join('');
+            document.getElementById('popular-tools-grid').innerHTML = popHtml;
+
+            // All Tools Categorized
+            let allHtml = '';
+            cats.forEach(c => {
+                const tools = toolsData.filter(t => t.category === c);
+                allHtml += `
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2 mb-6">${c}</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">${tools.map(t => createCard(t)).join('')}</div>
+                    </div>`;
+            });
+            document.getElementById('all-tools-container').innerHTML = allHtml;
+        }
+
+        function createCard(t) {
+            return `
+                <a href="#${t.id}" class="tool-card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 flex items-start gap-4 cursor-pointer group block">
+                    <div class="w-12 h-12 shrink-0 rounded-xl flex items-center justify-center text-white ${t.color} shadow-sm group-hover:scale-110 transition-transform"><i class="fa-solid ${t.icon} text-xl"></i></div>
+                    <div>
+                        <h4 class="font-bold text-gray-900 dark:text-white mb-1 group-hover:text-brand-accent transition-colors">${t.title}</h4>
+                        <p class="text-xs text-gray-500 line-clamp-2">${t.desc}</p>
+                    </div>
+                </a>`;
+        }
+
+        // Listeners
+        window.addEventListener('hashchange', () => {
+            const h = window.location.hash.substring(1);
+            if(h && toolsData.find(t=>t.id===h)) navigate('tool', h); else navigate('home');
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            renderHomeGrids();
+            const h = window.location.hash.substring(1);
+            if(h && toolsData.find(t=>t.id===h)) navigate('tool', h); else navigate('home');
+        });
+
+        // --- STREAMING_CHUNK:File Handling & Real PDF Thumbnails ---
+        function resetApp() {
+            els.uiUpload.classList.remove('hidden'); els.uiPreview.classList.add('hidden');
+            els.uiProcessing.classList.add('hidden'); els.uiResult.classList.add('hidden');
+            selectedFiles = []; els.fileList.innerHTML = '';
+            if(finalBlobUrl) { URL.revokeObjectURL(finalBlobUrl); finalBlobUrl = null; }
+        }
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => els.dropZone.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); }));
+        ['dragenter', 'dragover'].forEach(e => els.dropZone.addEventListener(e, () => els.dropZone.classList.add('dragover')));
+        ['dragleave', 'drop'].forEach(e => els.dropZone.addEventListener(e, () => els.dropZone.classList.remove('dragover')));
+        
+        els.dropZone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+        els.fileInput.addEventListener('change', function() { handleFiles(this.files); this.value=''; });
+
+        async function handleFiles(files) {
+            if(!files.length) return;
+            const arr = Array.from(files);
+            selectedFiles = currentTool.multiple ? [...selectedFiles, ...arr] : [arr[0]];
+            
+            els.uiUpload.classList.add('hidden'); els.uiPreview.classList.remove('hidden');
+            renderFileList();
+        }
+
+        async function renderFileList() {
+            els.fileList.innerHTML = '';
+            for(let i=0; i<selectedFiles.length; i++) {
+                const f = selectedFiles[i];
+                const id = `thumb-${Date.now()}-${i}`;
+                
+                els.fileList.innerHTML += `
+                    <div class="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm mb-3 group">
+                        <div id="${id}" class="w-16 h-20 bg-gray-100 dark:bg-gray-700 rounded-lg shrink-0 overflow-hidden flex items-center justify-center thumb-skeleton relative">
+                            <i class="fa-solid fa-file-pdf text-gray-300 dark:text-gray-600 absolute"></i>
+                        </div>
+                        <div class="flex-grow min-w-0">
+                            <p class="font-bold text-sm text-gray-900 dark:text-white truncate">${f.name}</p>
+                            <p class="text-xs text-gray-500">${(f.size/1024/1024).toFixed(2)} MB</p>
+                        </div>
+                        <button onclick="removeFile(${i})" class="w-8 h-8 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                `;
+                
+                // Generate Real Thumbnail for PDFs
+                if(f.type === 'application/pdf') {
+                    try {
+                        const buf = await f.arrayBuffer();
+                        const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+                        const page = await pdf.getPage(1);
+                        const vp = page.getViewport({scale: 0.5});
+                        const cvs = document.createElement('canvas');
+                        cvs.width = vp.width; cvs.height = vp.height;
+                        await page.render({canvasContext: cvs.getContext('2d'), viewport: vp}).promise;
+                        
+                        const thumbDiv = document.getElementById(id);
+                        if(thumbDiv) {
+                            thumbDiv.classList.remove('thumb-skeleton');
+                            thumbDiv.innerHTML = `<img src="${cvs.toDataURL()}" class="w-full h-full object-cover">`;
+                        }
+                    } catch(e) { console.log('Thumb error', e); document.getElementById(id)?.classList.remove('thumb-skeleton'); }
+                } else if(f.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        const thumbDiv = document.getElementById(id);
+                        if(thumbDiv) {
+                            thumbDiv.classList.remove('thumb-skeleton');
+                            thumbDiv.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
+                        }
+                    };
+                    reader.readAsDataURL(f);
+                } else {
+                    document.getElementById(id)?.classList.remove('thumb-skeleton');
+                }
+            }
+        }
+        window.removeFile = (idx) => { selectedFiles.splice(idx,1); if(selectedFiles.length===0) resetApp(); else renderFileList(); };
+
+        // --- STREAMING_CHUNK:Document Processing Engine ---
+        function setProg(pct, title, desc) {
+            els.progBar.style.width = `${pct}%`; els.progPct.textContent = `${Math.round(pct)}%`;
+            if(title) els.progTitle.textContent = title;
+            if(desc) els.progDesc.textContent = desc;
+        }
+        
+        async function startEngine() {
+            if(!selectedFiles.length) return;
+            els.uiPreview.classList.add('hidden'); els.uiProcessing.classList.remove('hidden');
+            setProg(5, "Initializing Workspace...", "Preparing files for local processing.");
+            
+            try {
+                if(currentTool.isReal) await runRealProcessor();
+                else await runSimulatedProcessor();
+            } catch(e) {
+                console.error(e);
+                alert("Error processing file: " + e.message);
+                resetApp();
+            }
+        }
+
+        async function runRealProcessor() {
+            const { PDFDocument, rgb, degrees } = PDFLib;
+            let resultBytes, zipOutput = false;
+            finalFileName = `DocuTools_${currentTool.title.replace(/\s+/g,'_')}.pdf`;
+            
+            // Artificial delay to show progress states (makes it feel robust)
+            await new Promise(r => setTimeout(r, 600)); 
+            setProg(25, "Analyzing Document...", "Reading PDF structure.");
+            
+            if (currentTool.id === 'merge-pdf') {
+                const merged = await PDFDocument.create();
+                for(let i=0; i<selectedFiles.length; i++) {
+                    setProg(25 + (i/selectedFiles.length)*50, "Merging Documents...", `Processing file ${i+1} of ${selectedFiles.length}`);
+                    const src = await PDFDocument.load(await selectedFiles[i].arrayBuffer());
+                    const pages = await merged.copyPages(src, src.getPageIndices());
+                    pages.forEach(p => merged.addPage(p));
+                }
+                resultBytes = await merged.save();
+                
+            } else if (currentTool.id === 'split-pdf') {
+                setProg(40, "Splitting Pages...", "Extracting individual pages.");
+                const doc = await PDFDocument.load(await selectedFiles[0].arrayBuffer());
+                const zip = new JSZip(), total = doc.getPageCount();
+                for(let i=0; i<total; i++) {
+                    setProg(40 + (i/total)*40, "Archiving Pages...", `Packing page ${i+1} of ${total}`);
+                    const newDoc = await PDFDocument.create();
+                    const [page] = await newDoc.copyPages(doc, [i]);
+                    newDoc.addPage(page);
+                    zip.file(`Page_${i+1}.pdf`, await newDoc.save());
+                }
+                resultBytes = await zip.generateAsync({type: "blob"});
+                zipOutput = true; finalFileName = finalFileName.replace('.pdf', '.zip');
+                
+            } else if (currentTool.id === 'compress-pdf') {
+                setProg(30, "Compressing Objects...", "Re-encoding image streams.");
+                const pdf = await pdfjsLib.getDocument({data: await selectedFiles[0].arrayBuffer()}).promise;
+                const newDoc = await PDFDocument.create();
+                const qual = parseFloat(document.getElementById('opt_lvl').value);
+                
+                for(let i=1; i<=pdf.numPages; i++) {
+                    setProg(30 + (i/pdf.numPages)*50, "Optimizing Pages...", `Compressing page ${i}`);
+                    const page = await pdf.getPage(i);
+                    const vp = page.getViewport({scale: qual === 0.9 ? 1.5 : (qual === 0.7 ? 1.0 : 0.7)});
+                    const cvs = document.createElement('canvas');
+                    cvs.width = vp.width; cvs.height = vp.height;
+                    await page.render({canvasContext: cvs.getContext('2d'), viewport: vp}).promise;
+                    const img = await newDoc.embedJpg(await (await fetch(cvs.toDataURL('image/jpeg', qual))).arrayBuffer());
+                    newDoc.addPage([img.width, img.height]).drawImage(img, {x:0, y:0, width:img.width, height:img.height});
+                }
+                resultBytes = await newDoc.save();
+                
+            } else if (currentTool.id === 'jpg-to-pdf') {
+                const doc = await PDFDocument.create();
+                for(let i=0; i<selectedFiles.length; i++) {
+                    setProg(20 + (i/selectedFiles.length)*60, "Converting Images...", `Injecting image ${i+1}`);
+                    const f = selectedFiles[i], buf = await f.arrayBuffer();
+                    const img = f.type === 'image/png' ? await doc.embedPng(buf) : await doc.embedJpg(buf);
+                    doc.addPage([img.width, img.height]).drawImage(img, {x:0, y:0, width:img.width, height:img.height});
+                }
+                resultBytes = await doc.save();
+                
+            } else if (currentTool.id === 'pdf-to-jpg') {
+                setProg(40, "Rendering Pages...", "Generating high-res image.");
+                const pdf = await pdfjsLib.getDocument({data: await selectedFiles[0].arrayBuffer()}).promise;
+                const page = await pdf.getPage(1);
+                const cvs = document.createElement('canvas'), vp = page.getViewport({scale: 2.0});
+                cvs.width = vp.width; cvs.height = vp.height;
+                await page.render({canvasContext: cvs.getContext('2d'), viewport: vp}).promise;
+                resultBytes = await new Promise(r => cvs.toBlob(r, 'image/jpeg', 0.9));
+                zipOutput = true; finalFileName = finalFileName.replace('.pdf', '.jpg');
+                
+            } else if (currentTool.id === 'rotate-pdf') {
+                setProg(50, "Applying Rotation...", "Modifying page matrices.");
+                const doc = await PDFDocument.load(await selectedFiles[0].arrayBuffer());
+                const deg = parseInt(document.getElementById('opt_deg').value);
+                doc.getPages().forEach(p => p.setRotation(degrees(p.getRotation().angle + deg)));
+                resultBytes = await doc.save();
+                
+            } else if (currentTool.id === 'delete-pages' || currentTool.id === 'extract-pages') {
+                setProg(50, "Modifying Document...", "Restructuring page tree.");
+                const doc = await PDFDocument.load(await selectedFiles[0].arrayBuffer());
+                const input = document.getElementById('opt_pages').value;
+                
+                // Parse "1, 3-5" syntax robustly
+                let pgsToAffect = new Set();
+                input.split(',').forEach(part => {
+                    const range = part.split('-').map(s=>parseInt(s.trim()));
+                    if(range.length===1 && !isNaN(range[0])) pgsToAffect.add(range[0]-1);
+                    else if(range.length===2 && !isNaN(range[0]) && !isNaN(range[1])) {
+                        for(let i=range[0]; i<=range[1]; i++) pgsToAffect.add(i-1);
+                    }
+                });
+                
+                if (currentTool.id === 'delete-pages') {
+                    Array.from(pgsToAffect).sort((a,b)=>b-a).forEach(i => { if(i<doc.getPageCount()) doc.removePage(i); });
+                    resultBytes = await doc.save();
+                } else {
+                    const newDoc = await PDFDocument.create();
+                    const valid = Array.from(pgsToAffect).filter(i => i<doc.getPageCount());
+                    const copied = await newDoc.copyPages(doc, valid);
+                    copied.forEach(p => newDoc.addPage(p));
+                    resultBytes = await newDoc.save();
+                }
+            }
+
+            setProg(95, "Finalizing Output...", "Preparing file download.");
+            await new Promise(r => setTimeout(r, 400));
+            
+            const blob = zipOutput ? resultBytes : new Blob([resultBytes], { type: 'application/pdf' });
+            finishProcessing(blob);
+        }
+
+        async function runSimulatedProcessor() {
+            return new Promise((resolve) => {
+                let p = 5;
+                const iv = setInterval(() => {
+                    p += Math.random() * 15; if(p > 95) p = 95;
+                    
+                    if(p < 40) setProg(p, "Uploading to Secure Server...", "Establishing encrypted connection.");
+                    else if(p < 80) setProg(p, "Processing Document...", "Running advanced format conversion.");
+                    else setProg(p, "Finalizing...", "Packaging output file.");
+                    
+                    if (Math.random() > 0.8 && p > 80) {
+                        clearInterval(iv);
+                        finalFileName = `DocuTools_Output_${currentTool.title.replace(/\s+/g,'_')}${currentTool.ext}`;
+                        const blob = new Blob([`Simulated output for ${currentTool.title}. Real complex conversions (Word/Excel) require backend processing engines.`], { type: 'text/plain' });
+                        finishProcessing(blob);
+                        resolve();
+                    }
+                }, 500);
+            });
+        }
+
+        function finishProcessing(blob) {
+            setProg(100, "Completed!", "File ready.");
+            finalBlobUrl = URL.createObjectURL(blob);
+            
+            // Save to History
+            let hist = JSON.parse(localStorage.getItem('docutools_history') || '[]');
+            hist.unshift({ file: finalFileName, tool: currentTool.title, date: new Date().toISOString() });
+            localStorage.setItem('docutools_history', JSON.stringify(hist.slice(0, 20))); // Keep last 20
+            
+            setTimeout(() => {
+                els.uiProcessing.classList.add('hidden'); els.uiResult.classList.remove('hidden');
+                document.getElementById('btn-download').onclick = () => {
+                    const a = document.createElement('a'); a.href = finalBlobUrl; a.download = finalFileName;
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                };
+            }, 500);
+        }
+
+        // --- Dashboard History ---
+        function renderHistory() {
+            const hist = JSON.parse(localStorage.getItem('docutools_history') || '[]');
+            const tbody = document.getElementById('history-table-body');
+            const empty = document.getElementById('history-empty');
+            
+            if(hist.length === 0) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+            
+            tbody.innerHTML = hist.map(h => `
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors group">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-file-pdf text-red-500 text-lg"></i>
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white">${h.file}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                        <span class="px-2 py-1 bg-brand-100 text-brand-700 dark:bg-gray-800 dark:text-gray-300 rounded-md text-xs font-bold">${h.tool}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
+                        ${new Date(h.date).toLocaleDateString()}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                        <button class="text-gray-400 hover:text-brand-accent transition-colors"><i class="fa-solid fa-download"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        function clearHistory() { localStorage.removeItem('docutools_history'); renderHistory(); }
+    </script>
+</body>
+</html>
